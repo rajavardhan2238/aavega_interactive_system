@@ -1,0 +1,742 @@
+﻿<!DOCTYPE html>
+<html class="blue">
+<head>
+   <title>Aavega Inventory  Management</title>
+   <meta name="viewport" content="width=device-width,initial-scale=1.0">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+       <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+       <script  src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.8/angular.min.js"></script>
+	    <script src="https://cdnjs.cloudflare.com/ajax/libs/angular-ui-bootstrap/2.1.4/ui-bootstrap-tpls.js"></script>
+		  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.6/angular.min.js"></script>
+		   <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.8/angular-animate.js"></script>
+		 
+<script>
+
+var currentUserType="";
+  $(document).ready(function(){
+    $(".nav-tabs a").click(function(){
+        $(this).tab('show');
+    });
+	currentUserType=localStorage.getItem("userType"); 	
+});
+						
+var xobj = new XMLHttpRequest();
+      xobj.overrideMimeType("application/json");		
+		xobj.open('GET', 'http://localhost:5000/getAllDevice', false); // Replace 'my_data' with the path to your file
+		xobj.send(null); 
+        if(xobj.status===200)
+		{
+            // Required use of an anonymous callback as .open will NOT return a value but simply returns undefined in asynchronous mode
+		   var temp = xobj.responseText;
+		   inventory_data=JSON.parse(temp);
+		   console.log(inventory_data);
+        }else
+		{
+		console.log("failed");
+		}
+
+var deviceStatus = [
+    { "id": 0, "value": "Change Status" },
+    { "id": 1, "value": "Available" },
+    { "id": 2, "value": "Issued" },
+    { "id": 3, "value": "Damaged" }
+];
+
+var device = angular.module('InventoryApp',['ui.bootstrap','ngAnimate']);
+device.controller("deviceController",['$scope','$http','$uibModal',function($scope,$http,$uibModal){
+
+
+
+    $scope.username="raj";
+    $scope.deviceStatus=deviceStatus;
+    $scope.isAdmin=false;
+	if(currentUserType=="Admin")
+	 $scope.isAdmin=true;
+	 else
+	 {
+	 currentUserType=localStorage.getItem("userType"); 	
+	 if(currentUserType=="Admin")
+	  $scope.isAdmin=true;
+	 }
+	 
+
+    $scope.InventoryDeviceRow=[{
+        deviceState:deviceStatus[1],
+        device_name:"",
+        model_name:"",
+		os_type:"",
+        firmware:"",
+        imei_number:"",
+        issued_Date:"",
+        employee_id:"",
+        damge_Description:""
+    }];
+
+
+    //Store Value in InventoryData					
+    $scope.InventoryDeviceRow.splice(0,1);
+    for(var i=0;i<inventory_data.length;i++)
+    {
+	var temp_data=inventory_data[i];
+        var temp_index=0;
+        if(inventory_data[i].deviceState=="Available")
+            temp_index=1;
+        else if(inventory_data[i].deviceState=="Issued")
+            temp_index=2;
+        else if(inventory_data[i].deviceState=="Damaged")
+            temp_index=3;
+        $scope.InventoryDeviceRow.push({
+            deviceState:deviceStatus[temp_index],
+            device_name:inventory_data[i].device_name,
+            model_name:inventory_data[i].model_name,
+            imei_number:inventory_data[i].imei_number,
+			os_type:inventory_data[i].os_type,
+            firmware:inventory_data[i].firmware,
+            issued_Date:inventory_data[i].issued_Date,
+            employee_id:inventory_data[i].employee_id,
+            damge_Description:inventory_data[i].damge_Description
+				
+        });
+    }
+	
+	$scope.AddNewDamageDevice=function ()
+	{
+	
+	var addNewDamageDevice = $uibModal.open({
+                ariaLabelledBy: 'modal-title',
+                ariaDescribedBy: 'modal-body',
+                templateUrl: 'AddNewDamageDeviceTemplate.html',
+                controller: 'AddNewDamageDeviceController',
+                size:'md'
+                
+            });
+
+            addNewDamageDevice.result.then(function (newDamageDeviceDetails)
+            {	
+			$scope.InventoryDeviceRow.push({
+                deviceState:deviceStatus[3],
+                device_name:newDamageDeviceDetails.newDamageDeviceName,
+                model_name:newDamageDeviceDetails.newDamageModelName,
+                imei_number:newDamageDeviceDetails.newDamageDeviceIMEINumber,
+				os_type:newDamageDeviceDetails.newOsValue,
+                firmware:newDamageDeviceDetails.newDamageDeviceFirmware,
+                issued_Date:"",
+                employee_id:"",
+                damge_Description:newDamageDeviceDetails.newDamageDeviceDescription	
+            });		
+            },function()
+            {
+                console.log("Added new Damage Device");
+            });	
+	};
+
+    $scope.DeleteADevice=function(index)
+    {
+        if($scope.InventoryDeviceRow.length>1)
+        {
+            $scope.InventoryDeviceRow.splice(index,1);
+        }
+    }	
+    $scope.AddDevice=function()
+    {
+        var AddmodalInstance = $uibModal.open({
+            ariaLabelledBy: 'modal-title',
+            ariaDescribedBy: 'modal-body',
+            templateUrl: 'AddDeviceTemplate.html',
+            controller: 'AddDeviceController',
+            size:'md'
+        });
+
+        AddmodalInstance.result.then(function (newDeviceDetails)
+        {
+            $scope.InventoryDeviceRow.push({
+                deviceState:deviceStatus[1],
+                device_name:newDeviceDetails.DeviceName,
+                model_name:newDeviceDetails.ModelName,
+                imei_number:newDeviceDetails.DeviceIMEINumber,
+                firmware:newDeviceDetails.DeviceFirmware,
+				os_type:newDeviceDetails.OsValue,
+                issued_Date:"",
+                employee_id:"",
+                damge_Description:""
+				
+            });
+        },function()
+        {
+            console.log("Adding a new device canceled!!");
+        });
+    }
+    $scope.IssueToAvailable=function(index)
+    {
+        $scope.InventoryDeviceRow[index].deviceState = deviceStatus[1];
+        $scope.InventoryDeviceRow[index].issued_Date="";
+        $scope.InventoryDeviceRow[index].employee_id="";
+    };	
+
+    $scope.DamaeToRepairDevice=function(index)
+    {
+        $scope.InventoryDeviceRow[index].deviceState=deviceStatus[1];
+        $scope.InventoryDeviceRow[index].damge_Description="";
+    }
+$scope.GoToHomePage=function()
+{
+ $http({
+            method:'GET',
+			 url :'http://localhost:5000/SaveDeviceData',
+			 headers:
+			 {
+				 "DeviceData":JSON.stringify($scope.InventoryDeviceRow)
+			 }
+			 }).then(function success(response){
+			 if(response.data=="Done")
+			   window.location="http://localhost:5000/index.html";
+			 },function error(){
+			 console.log("Unable to save and logout.");
+			 });
+};
+$scope.autoSave = function()
+{
+ $http({
+            method:'GET',
+			 url :'http://localhost:5000/SaveDeviceData',
+			 headers:
+			 {
+				 "DeviceData":JSON.stringify($scope.InventoryDeviceRow)
+			 }
+			 }).then(function success(response){
+			 if(response.data=="Done")
+			   console.log("changes saved!!!");
+			 },function error(){
+			 console.log("Unable to save and logout.");
+			 });
+};
+
+setInterval(function(){
+  $scope.autoSave();
+}, 2000);
+
+
+$scope.OpenIssueDialogueBox=function(index)
+    {
+
+            var IssuingmodalInstance = $uibModal.open({
+                ariaLabelledBy: 'modal-title',
+                ariaDescribedBy: 'modal-body',
+                templateUrl: 'IssueDeviceTemplate.html',
+                controller: 'IssuingController',
+                size:'sm',
+                resolve:{
+                    issue_index:function()
+                    {
+                        return index;
+                    }
+                }
+            });
+
+            IssuingmodalInstance.result.then(function (issuedemployeeId)
+            {
+                var IssueDeviceData= issuedemployeeId;
+                var today = new Date();
+                var dd = today.getDate();
+                var mm = today.getMonth()+1;
+                var yyyy = today.getFullYear();
+                if(dd<10){
+                    dd='0'+dd
+                }
+                if(mm<10){
+                    mm='0'+mm
+                }
+                var today = dd+'/'+mm+'/'+yyyy+'  '+today.getHours()+':'+today.getMinutes();
+                $scope.InventoryDeviceRow[IssueDeviceData.issue_index].issued_Date=today;
+                $scope.InventoryDeviceRow[IssueDeviceData.issue_index].deviceState=deviceStatus[2];
+                $scope.InventoryDeviceRow[IssueDeviceData.issue_index].employee_id=IssueDeviceData.employeeid;
+
+            },function()
+            {
+                $scope.InventoryDeviceRow[index].deviceState=deviceStatus[1];
+                console.log("Issuing cancel");
+            });
+
+     };
+
+$scope.OpenIssueDialogue = function(index)
+    {
+    <!--console.log(index+" hello"+ prevState");-->
+    <!--console.log($scope.InventoryDeviceRow[index].deviceState.value);-->
+
+      var temp_index=0;
+        if(inventory_data[index].deviceState=="Available")
+            temp_index=1;
+        else if(inventory_data[index].deviceState=="Issued")
+            temp_index=2;
+        else if(inventory_data[index].deviceState=="Damaged")
+            temp_index=3;
+
+            console.log("ggggttt"+$scope.InventoryDeviceRow[index].deviceState.value);
+
+
+
+        if($scope.InventoryDeviceRow[index].deviceState.value==deviceStatus[2].value){
+            var IssuingmodalInstance = $uibModal.open({
+                ariaLabelledBy: 'modal-title',
+                ariaDescribedBy: 'modal-body',
+                templateUrl: 'IssueDeviceTemplate.html',
+                controller: 'IssuingController',
+                size:'sm',
+                resolve:{
+                    issue_index:function()
+                    {
+                        return index;
+                    }
+                }
+            });
+
+            IssuingmodalInstance.result.then(function (issuedemployeeId)
+            {
+                var IssueDeviceData= issuedemployeeId;
+                var today = new Date();
+                var dd = today.getDate();
+                var mm = today.getMonth()+1;
+                var yyyy = today.getFullYear();
+                if(dd<10){
+                    dd='0'+dd
+                } 
+                if(mm<10){
+                    mm='0'+mm
+                } 
+                var today = dd+'/'+mm+'/'+yyyy +'  '+today.getHours()+':'+today.getMinutes();
+                $scope.InventoryDeviceRow[IssueDeviceData.issue_index].issued_Date=today;
+                $scope.InventoryDeviceRow[IssueDeviceData.issue_index].deviceState=deviceStatus[2];	
+                $scope.InventoryDeviceRow[IssueDeviceData.issue_index].employee_id=IssueDeviceData.employeeid;
+
+            },function()
+            {
+                $scope.InventoryDeviceRow[index].deviceState= deviceStatus[temp_index] ;
+                console.log("Issuing cancel");
+            });
+        }
+        else{
+            if($scope.InventoryDeviceRow[index].deviceState.value==deviceStatus[3].value){
+                var DamagedmodalInstance = $uibModal.open({
+                    ariaLabelledBy: 'modal-title',
+                    ariaDescribedBy: 'modal-body',
+                    templateUrl: 'DamageDeviceTemplate.html',
+                    controller: 'DamageController',
+                    size:'md',
+                    resolve:{
+                        issue_index:function()
+                        {
+                            return index;
+                        }
+                    }
+                });
+
+                DamagedmodalInstance.result.then(function (damageDescription)
+                {
+                    $scope.InventoryDeviceRow[damageDescription.issue_index].deviceState=deviceStatus[3];
+                    $scope.InventoryDeviceRow[damageDescription.issue_index].damge_Description=damageDescription.damageDescription;
+                },function()
+                {
+                    $scope.InventoryDeviceRow[index].deviceState=deviceStatus[temp_index];
+                    console.log("Damaged cancel");
+                });
+            }
+        }
+    };				
+					
+    $scope.sendEmail=function(){
+        var htmlText='<html><table>';
+        for(var i=-1;i< $scope.InventoryDeviceRow.length;i++)
+        {
+            if(i==-1)
+            {
+                htmlText+="<tr>";
+                htmlText+="<th> # </th>";
+                htmlText+="<th> Device Name </th>";
+                htmlText+="<th> Model Name </th>";
+                htmlText+="<th> IMEI Number </th>";
+                htmlText+="</tr>";
+            }
+            else
+            {
+                var temp =$scope.InventoryDeviceRow[i];
+                htmlText+="<tr>";
+                htmlText+="<th> "+(i+1)+"</th>";
+                htmlText+="<th> "+temp.device_name+"</th>";
+                htmlText+="<th> "+temp.model_name+"</th>";
+                htmlText+="<th> "+temp.imei_number+"</th>";
+                htmlText+="</tr>";
+            }
+        }
+        htmlText+="</table></html>";
+
+              
+		
+        $http({
+
+            method:'POST',
+            url:'http://localhost:5000/SendEmails',
+            headers:
+                   {
+                       'To':'duggasani1993@gmail.com',
+                       'HtmlBody':htmlText
+                   }
+        }).then(function success(response){
+            
+                console.log("Email Sent");
+				console.log("sending mail" + response);
+        },function Error()
+        {
+            console.log("unable to send email.")
+        });
+
+
+
+    };
+}]);
+
+device.controller("IssuingController",['$scope','$uibModalInstance','issue_index',function($scope,$uibModalInstance,issue_index)
+{
+    $scope.IssuedToEmployeeId="";
+    $scope.IssueDeviceData={}
+    $scope.ok=function()
+    {
+        $scope.IssueDeviceData.issue_index=issue_index;
+        $scope.IssueDeviceData.employeeid=$scope.IssuedToEmployeeId;
+        $uibModalInstance.close($scope.IssueDeviceData);
+    }
+    $scope.cancel=function()
+    {
+        $uibModalInstance.dismiss('cancel');
+    }
+}]);
+
+
+device.controller("DamageController",['$scope','$uibModalInstance','issue_index',function($scope,$uibModalInstance,issue_index)
+{
+    $scope.damageDescription="";
+    $scope.damageDevice={};
+    $scope.ok=function()
+    {
+        $scope.damageDevice.issue_index=issue_index;
+        $scope.damageDevice.damageDescription=$scope.damageDescription;
+        $uibModalInstance.close($scope.damageDevice);
+    }
+    $scope.cancel=function()
+    {
+        $uibModalInstance.dismiss('cancel');
+    }
+}]);
+
+
+device.controller("AddDeviceController",['$scope','$uibModalInstance',function($scope,$uibModalInstance)
+{
+    var newDeviceDescription={};
+
+    $scope.newDeviceName="";
+    $scope.newModelName="";
+    $scope.newDeviceFirmware="";
+    $scope.newDeviceIMEINumber="";
+	$scope.newDeviceOsValue="";
+    $scope.ok=function()
+    {
+        newDeviceDescription.DeviceName=$scope.newDeviceName;
+        newDeviceDescription.ModelName=$scope.newModelName;
+        newDeviceDescription.DeviceFirmware=$scope.newDeviceFirmware;
+        newDeviceDescription.DeviceIMEINumber=$scope.newDeviceIMEINumber;
+		newDeviceDescription.OsValue=$scope.newDeviceOsValue;
+        $uibModalInstance.close(newDeviceDescription);
+    }
+    $scope.cancel=function()
+    {
+        $uibModalInstance.dismiss('cancel');
+    }
+}]);
+
+device.controller("AddNewDamageDeviceController",['$scope','$uibModalInstance',function($scope,$uibModalInstance)
+{
+	var newDamageDeviceDetails={};
+
+	$scope.newDamageDeviceName="";
+    $scope.newDamageModelName="";
+    $scope.newDamageDeviceFirmware="";
+    $scope.newDamageDeviceIMEINumber="";
+	$scope.newDamageDeviceDescription="";
+	$scope.newDamageDeviceOsValue="";
+
+    $scope.ok=function()
+    {
+        newDamageDeviceDetails.newDamageDeviceName=$scope.newDamageDeviceName;
+        newDamageDeviceDetails.newDamageModelName=$scope.newDamageModelName;
+        newDamageDeviceDetails.newDamageDeviceFirmware=$scope.newDamageDeviceFirmware;
+        newDamageDeviceDetails.newDamageDeviceIMEINumber=$scope.newDamageDeviceIMEINumber;
+		newDamageDeviceDetails.newDamageDeviceDescription=$scope.newDamageDeviceDescription;
+		newDamageDeviceDetails.newOsValue=$scope.newDamageDeviceOsValue;
+        $uibModalInstance.close(newDamageDeviceDetails);
+    }
+	
+	$scope.cancel=function()
+	{
+	$uibModalInstance.dismiss('cancel');
+	}
+}]);
+
+
+</script>
+</head>
+<body ng-app="InventoryApp" ng-controller="deviceController">
+<nav class="navbar navbar-default"  >
+  <div class="container-fluid" style="padding-top=20px">
+      <img src="http://www.suntechnologies.com/images/aavega-logo.png" align="left" alt="Smiley face" width="130" height="80" >
+    <div class="navbar-header">
+      <a class="navbar-brand " style="top: 60px;" >
+          Aavega Inventory Management
+      </a>
+    </div>
+	
+	
+	<div class=" navbar-header pull-right">
+	<button type="button"  style="margin-right:100px;" ng-click="GoToHomePage()" ><span>Logout</span></button>
+	 <button id="send_email" class="pointer" ng-click="sendEmail()"  > <img alt="Email Data" src="https://usercontent2.hubstatic.com/8138627.jpg" height="40px" width="40px"  style="margin-right:200px;margin-top:6px;"></img> send mail</button>
+	 </div>
+  </div>
+  </nav>
+
+   <script type="text/ng-template" id="IssueDeviceTemplate.html">
+        <div class="modal-header">
+            <h3 class="modal-title" id="modal-title">Issuing</h3>
+        </div>
+        <div class="modal-body" id="modal-body">
+            <div class="form-group">
+            <label for="usr">Issue To </label>
+            <input type="text" class="form-control" id="IssuedToEmployeeId" ng-model="IssuedToEmployeeId" placeholder="EmployeeID" >
+             </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" type="button" ng-click="ok()">Issue</button>
+            <button class="btn btn-warning" type="button" ng-click="cancel()">Cancel</button>
+        </div>
+    </script>
+
+<script type="text/ng-template" id="emailTemplate.html">
+    <div class="modal-header">
+        <h3 class="modal-title" id="modal-title">Email Notification</h3>
+    </div>
+  <b>  The  mail has been sent successfully. </b>
+    </div>
+    <div class="modal-footer">
+        <button class="btn btn-primary" type="button" ng-click="ok()">Issue</button>
+    </div>
+</script>
+
+	<script type="text/ng-template" id="DamageDeviceTemplate.html">
+        <div class="modal-header">
+            <h3 class="modal-title" id="modal-title">Damaged</h3>
+        </div>
+        <div class="modal-body" id="modal-body">
+            <div class="form-group">
+            <label for="usr"> Damage Description</label>
+			<textarea class="form-control" row="6" ng-model="damageDescription" placeholder="Device damage description "/>
+             </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" type="button" ng-click="ok()">Submit</button>
+            <button class="btn btn-warning" type="button" ng-click="cancel()">Cancel</button>
+        </div>
+    </script>
+	
+	<script type="text/ng-template" id="AddNewDamageDeviceTemplate.html">
+        <div class="modal-header">
+            <h3 class="modal-title" id="modal-title">New Damaged Device</h3>
+        </div>
+        <div class="modal-body" id="modal-body">
+		 <div class="form-group">
+            <label > Device Name  </label>
+			<input type="text" class="form-control" id="newDamageDeviceName" ng-model="newDamageDeviceName" placeholder="Device Name" >
+            </div>
+			<div class="form-group">
+            <label > Model Name  </label>
+			<input type="text" class="form-control" id="newDamageModelName" ng-model="newDamageModelName" placeholder="Model Name" >
+            </div>
+			<div class="form-group">
+            <label > Operating System  </label>
+			<input type="text" class="form-control" id="newDamageDeviceOsValue" ng-model="newDamageDeviceOsValue" placeholder="Operating System" >
+            </div>
+			<div class="form-group">
+            <label > Firmware  </label>
+			<input type="text" class="form-control" id="newDamageDeviceFirmware" ng-model="newDamageDeviceFirmware" placeholder="Device Firmware" >
+            </div>
+			<div class="form-group">
+            <label > IMEI Number  </label>
+			<input type="text" class="form-control" id="newDamageDeviceIMEINumber" ng-model="newDamageDeviceIMEINumber" placeholder="Device IMEI Number" >
+            </div>
+            <div class="form-group">
+            <label for="usr"> New Damage Device Description</label>
+			<textarea class="form-control" row="6" ng-model="newDamageDeviceDescription" placeholder="Device damage description "/>
+             </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" type="button" ng-click="ok()">Submit</button>
+            <button class="btn btn-warning" type="button" ng-click="cancel()">Cancel</button>
+        </div>
+    </script>
+	
+	<script type="text/ng-template" id="AddDeviceTemplate.html">
+        <div class="modal-header">
+            <h3 class="modal-title" id="modal-title">New Device Description</h3>
+        </div>
+        <div class="modal-body" id="modal-body">
+            <div class="form-group">
+            <label > Device Name  </label>
+			<input type="text" class="form-control" id="newDeviceName" ng-model="newDeviceName" placeholder="Device Name" >
+            </div>
+			<div class="form-group">
+            <label > Model Name  </label>
+			<input type="text" class="form-control" id="newModelName" ng-model="newModelName" placeholder="Model Name" >
+            </div>
+			<div class="form-group">
+            <label > Operating System  </label>
+			<input type="text" class="form-control" id="newDeviceOsValue" ng-model="newDeviceOsValue" placeholder="Operating System" >
+            </div>
+			<div class="form-group">
+            <label > Firmware  </label>
+			<input type="text" class="form-control" id="newDeviceFirmware" ng-model="newDeviceFirmware" placeholder="Device Firmware" >
+            </div>
+			<div class="form-group">
+            <label > IMEI Number  </label>
+			<input type="text" class="form-control" id="newDeviceIMEINumber" ng-model="newDeviceIMEINumber" placeholder="Device IMEI Number" >
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" type="button" ng-click="ok()">Add</button>
+            <button class="btn btn-warning" type="button" ng-click="cancel()">Cancel</button>
+        </div>
+    </script>
+  
+<div class="container">
+  <ul class="nav nav-tabs">
+    <li class="active"><a href="#inventory">Inventory</a></li>
+	<li><a href="#issued">Issued</a></li>
+    <li><a href="#available">Available</a></li>  
+    <li><a href="#damaged">Damaged</a></li>
+  </ul>
+
+  <div class="tab-content">
+ 
+    <div id="inventory" class="tab-pane fade in active">
+	 <button ng-show="isAdmin" type="button"   class="btn btn-custom" style="background:#00329E;color:white;margin-top:10px;margin-bottom:10px;"  ng-click="AddDevice()"><span > Add Device</span> </button>
+      <table class="table table-hover" id="Inventory-table">
+                    <thead class="thead-default greycolor">
+                        <tr>
+                            <th><span>#</span></th>
+                            <th><span>Device Name </span></th>
+							<th><span>Model Number </span></th>
+							<th><span>Operating System </span></th>
+							<th><span>Firmware </span></th>
+							<th><span>IMEI Number </span></th>
+							<th ng-show="isAdmin"><span>Action</span></th>
+						<!--	<th><span>Status </span></th> -->
+                        </tr>
+                    </thead>
+
+                    <tbody ng-repeat="indeventory_device in InventoryDeviceRow">
+                        <tr>
+                            <td>{{1+$index}}</td>
+                            <td>{{indeventory_device.device_name}}</td>
+                            <td>{{indeventory_device.model_name}} </td>
+							<td>{{indeventory_device.os_type}}</td>
+							 <td>{{indeventory_device.firmware}}</td>
+                            <td>{{indeventory_device.imei_number}}</td>
+							<td ng-show="isAdmin"><button type="button" name="DeleteADevice" ng-click="DeleteADevice($index)" ><span>Delete</span></button></td>
+						<!--	<td> <select class="form-control" data-ng-options="o.value for o in deviceStatus" data-ng-model="indeventory_device.deviceState" ng-change="OpenIssueDialogue($index)" ></select></td> -->
+                        </tr>
+                    </tbody>
+                </table>			
+    </div>
+    <div id="available" class="tab-pane fade">
+             <table class="table table-hover" id="Available-table">
+                    <thead class="thead-default greycolor">
+                        <tr>
+                            <th><span>Device Name </span></th>
+							<th><span>Model Number </span></th>
+							<th><span>Operating System </span></th>
+							<th><span>Firmware </span></th>
+							<th><span>IMEI Number </span></th>
+							<th ><span>Action</span></th>
+                        </tr>
+                    </thead>
+
+                    <tbody ng-repeat="available_device in InventoryDeviceRow">
+                        <tr ng-if="available_device.deviceState.value==deviceStatus[1].value">
+                            <td>{{available_device.device_name}}</td>	
+                            <td>{{available_device.model_name}} </td>
+							<td>{{available_device.os_type}}</td>
+							<td>{{available_device.firmware}}</td>
+                            <td>{{available_device.imei_number}}</td>
+							<td><button type="button" name="AvailableToIssueDevice" ng-click="OpenIssueDialogueBox($index)" ><span>Issue</span></button></td>
+                        </tr>
+                    </tbody>
+                </table>	
+    </div>
+    <div id="issued" class="tab-pane fade">
+      <table class="table table-hover" id="issued-table">
+                    <thead class="thead-default greycolor">
+                        <tr>
+                            <th><span>Device Name </span></th>
+							<th><span>Model Number </span></th>
+							<th><span>Operating System </span></th>
+							<th><span>Firmware </span></th>
+							<th><span>IMEI Number </span></th>
+							<th><span>Issued Date </span></th>
+							<th><span>EmployeeID</span></th>
+							<th ><span>Action</span></th>
+                        </tr>
+                    </thead>
+
+                    <tbody ng-repeat="issued_device in InventoryDeviceRow">
+                        <tr ng-if="issued_device.deviceState.value==deviceStatus[2].value">
+                            <td>{{issued_device.device_name}}</td>
+                            <td>{{issued_device.model_name}} </td>
+							<td>{{issued_device.os_type}}</td>
+							<td>{{issued_device.firmware}}</td>
+                            <td>{{issued_device.imei_number}}</td>
+							<td>{{issued_device.issued_Date}}</td>
+							<td>{{issued_device.employee_id}}</td>
+							<td><button type="button" name="IssueToAvailable" ng-click="IssueToAvailable($index)" ><span>Return </span></button></td>
+                        </tr>
+                    </tbody>
+                </table>
+    </div>
+    <div id="damaged" class="tab-pane fade">
+	 <button ng-show="isAdmin" type="button"   class="btn btn-custom" style="background:#00329E;color:white;margin-top:10px;margin-bottom:10px;"  ng-click="AddNewDamageDevice()"><span > Add Damaged Device</span> </button>
+      <table class="table table-hover" id="damaged-table">
+                    <thead class="thead-default greycolor">
+                        <tr>
+                            <th><span>Device Name </span></th>
+							<th><span>Model Number </span></th>
+							<th><span>Operating System </span></th>
+							<th><span>Firmware </span></th>
+							<th><span>IMEI Number </span></th>
+							<th><span>Description </span></th>
+							<th ng-show="isAdmin"><span>Action</span></th>
+                        </tr>
+                    </thead>
+
+                    <tbody ng-repeat="damaged_device in InventoryDeviceRow">
+                        <tr ng-if="damaged_device.deviceState.value==deviceStatus[3].value">
+                            <td>{{damaged_device.device_name}}</td>
+                            <td>{{damaged_device.model_name}} </td>
+							<td>{{damaged_device.os_type}}</td>
+							<td>{{damaged_device.firmware}}</td>
+                            <td>{{damaged_device.imei_number}}</td>
+							<td>{{damaged_device.damge_Description}}</td>
+							<td ng-show="isAdmin"><button type="button" name="DamaeToRepairDevice" ng-click="DamaeToRepairDevice($index)" ><span>Repaired</span></button></td>
+                        </tr>
+                    </tbody>
+                </table>
+    </div>
+  </div>
+</div>
+</body>
+</html>

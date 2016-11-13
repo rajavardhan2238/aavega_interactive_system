@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html class="blue">
+<head>
+   <title>Aavega Inventory Management </title>
+   <meta name="viewport" content="width=device-width;initial-scale=1.0">
+       <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+       <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+        <script  src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.8/angular.min.js"></script>
+		 <script  src="https://cdnjs.cloudflare.com/ajax/libs/angular-ui-bootstrap/2.1.4/ui-bootstrap-tpls.js"></script>
+
+		 
+		 <script>
+		 
+		 
+		 	 var PIVQuestions = [
+    { "id": 0, "PIVCode":"Q000","value": "Please select a question" },
+    { "id": 1, "PIVCode":"Q001","value": "What is your real name ?" },
+    { "id": 2, "PIVCode":"Q002","value": "what is your gamer tag ?" },
+    { "id": 3, "PIVCode":"Q003","value": "What is your hometown ?" },
+    { "id": 4, "PIVCode":"Q004","value": "when is your birthday ?" },
+    { "id": 5, "PIVCode":"Q005","value": "What game got you started in gaming ?" },
+		 	 ];
+localStorage.setItem("userType", ""); 
+var user_data="";
+var xobj = new XMLHttpRequest();
+xobj.overrideMimeType("application/json");		
+xobj.open('GET', 'http://localhost:5000/getUserData', false); // Replace 'my_data' with the path to your file
+xobj.send(null); 
+if(xobj.status===200)
+{
+    // Required use of an anonymous callback as .open will NOT return a value but simply returns undefined in asynchronous mode
+    var temp = xobj.responseText;
+    user_data=JSON.parse(temp);
+}else
+{
+    console.log("failed");
+}
+
+var device = angular.module('InventoryAppLogin',[]);
+device.controller("InventoryLoginController",['$scope','$http',function($scope,$http)
+{
+    $scope.isError=false;
+    $scope.isforgotPasswordshow=false;
+    $scope.allPivQuestions=PIVQuestions;
+    $scope.username="";
+    $scope.password="";
+    $scope.fpsPivAnswer="";
+    $scope.fpsnewPassword="";
+    $scope.fpsconfirmnewPassword="";
+    $scope.userDataRow=[{
+	userType:"",
+        userQuestion:$scope.allPivQuestions[0],
+        userPivAnswer:"",
+        username:"",
+        fullname:"",
+        employeeId:"",
+        password:""
+    }];
+
+
+    //Store Value in InventoryData					
+    $scope.userDataRow.splice(0,1);
+    for(var i=0;i<user_data.length;i++)
+    {
+        var temp_data=user_data[i];
+        var temp_index=0;
+        for(var j=0;j< $scope.allPivQuestions.length;j++)
+        {
+            if($scope.allPivQuestions[j].PIVCode == temp_data.userQuestionCode){
+                temp_index=j;
+                break;
+            }
+        }
+
+        $scope.userDataRow.push({
+		userType:user_data[i].userType,
+            userQuestion:$scope.allPivQuestions[temp_index],
+            userPivAnswer:user_data[i].userPivAnswer,
+            username:user_data[i].username,
+            fullname:user_data[i].fullname,
+            employeeId:user_data[i].employeeId,
+            password:user_data[i].password
+        });
+    }
+	
+	
+		 
+    $scope.Login=function()
+    {
+        var isValidCredential=false;
+       
+        for(var i=0;i<$scope.userDataRow.length;i++)
+        {
+            if($scope.userDataRow[i].username==$scope.username&&$scope.userDataRow[i].password==$scope.password&&$scope.userDataRow[i].userType=="User") 
+            { 
+			localStorage.setItem("userType", "User");
+                isValidCredential=true;
+                console.log($scope.userDataRow[i]);
+                break;
+            }
+        }
+        if(isValidCredential)
+        {
+            $scope.isError=false;
+            window.location="http://localhost:5000/device.html";
+        }else
+        {
+            $scope.isError=true;
+            if($scope.username==""||$scope.password=="")
+                $scope.errorMessage="Enter your credential.";
+            else
+                $scope.errorMessage="Enter valid credential.";
+        }
+    };
+}]);
+</script>
+</head>
+<body ng-app="InventoryAppLogin" ng-controller="InventoryLoginController">
+<nav class="navbar navbar-default">
+  <div class="container-fluid" style="background:#67BCDB">
+
+<img src="http://www.suntechnologies.com/images/aavega-logo.png" align="left" alt="Smiley face" width="130" height="80" >
+    <div class="navbar-header">
+      <div class="navbar-brand "  style="margin-left:0px; color:white;">
+          Aavega Inventory Management
+      </div>
+    </div>
+  </div>
+  
+</nav>
+
+<div class="container">
+
+<div class="col-md-6 col-md-offset-3" ng-show="!isforgotPasswordshow">
+    <h2>Login</h2>
+    <form >
+        <div class="form-group" >
+            <label for="username">Username</label>
+            <input type="text" name="username" id="username" class="form-control" ng-model="username" required   />        
+        </div>
+        <div class="form-group" >
+            <label for="password">Password</label>
+            <input type="password" name="password" id="password" class="form-control" ng-model="password"   required />
+        </div>
+		<div ng-if="isError">
+		<p class="text-warning">{{errorMessage}}</p>
+		</div>
+        <div class="form-actions">
+           <button  ng-click="Login()"  class="btn btn-primary">Login </button>
+        </div>
+    </form>
+</div>
+
+</div>
+</body>
+</html>

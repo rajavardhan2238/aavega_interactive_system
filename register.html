@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html class="blue">
+<head>
+   <title>Aavega Inventory Management </title>
+   <meta name="viewport" content="width=device-width;initial-scale=1.0">
+       <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+       <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+        <script  src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.8/angular.min.js"></script>
+		 <script  src="https://cdnjs.cloudflare.com/ajax/libs/angular-ui-bootstrap/2.1.4/ui-bootstrap-tpls.js"></script>
+
+		 
+		 <script>
+		 var PIVQuestions = [
+    { "id": 0, "PIVCode":"Q000","value": "Please select a question" },
+    { "id": 1, "PIVCode":"Q001","value": "What is your real name ?" },
+    { "id": 2, "PIVCode":"Q002","value": "what is your gamer tag ?" },
+    { "id": 3, "PIVCode":"Q003","value": "What is your hometown ?" },
+    { "id": 4, "PIVCode":"Q004","value": "when is your birthday ?" },
+    { "id": 5, "PIVCode":"Q005","value": "What game got you started in gaming ?" },
+];
+
+	 var AllUserType = [
+	{ "id": 0, "value":"User Type" },
+    { "id": 1, "value":"User" },
+    { "id": 2, "value":"Admin" },
+];
+
+var user_data="";
+var xobj = new XMLHttpRequest();
+      xobj.overrideMimeType("application/json");		
+		xobj.open('GET', 'http://localhost:5000/getUserData', false); // Replace 'my_data' with the path to your file
+		xobj.send(null); 
+        if(xobj.status===200)
+		{
+            // Required use of an anonymous callback as .open will NOT return a value but simply returns undefined in asynchronous mode
+		   var temp = xobj.responseText;
+		   user_data=JSON.parse(temp);
+		   console.log(user_data);
+        }else
+		{
+		console.log("failed");
+		}
+		
+		 
+		 var device = angular.module('InventoryAppLogin',[]);
+         device.controller("InventoryRegisterController",['$scope','$http',function($scope,$http)
+		 {
+		 
+		 $scope.allPivQuestions = PIVQuestions;
+		 $scope.AllUserType=AllUserType;
+		 $scope.userType=$scope.AllUserType[0];
+		 $scope.userQuestion= $scope.allPivQuestions[0];
+		 $scope.userPivAnswer="";
+		 $scope.username="";
+		 $scope.fullname="";
+		 $scope.employeeId="";
+		 $scope.password="";
+		 $scope.confirmpassword="";
+		 
+		 
+		     $scope.userDataRow=[{
+		userType:$scope.AllUserType[0],
+        userQuestion:$scope.allPivQuestions[0],
+        userPivAnswer:"",
+        username:"",
+        fullname:"",
+        employeeId:"",
+        password:""
+    }];
+
+
+    //Store Value in InventoryData					
+    $scope.userDataRow.splice(0,1);
+	for(var i=0;i<user_data.length;i++)
+    {
+	var temp_data=user_data[i];
+        var temp_index=0;
+		var temp_usertype_index=0;
+		for(var j=0;j< $scope.allPivQuestions.length;j++)
+		{
+		if($scope.allPivQuestions[j].PIVCode == temp_data.userQuestionCode){
+		  temp_index=j;
+		  break;
+		  }
+		}
+		
+		if(temp_data.userType=="User")
+		{
+		temp_usertype_index=1;
+		}else if(temp_data.userType=="Admin")
+		temp_usertype_inde=2;
+
+        $scope.userDataRow.push({
+		    userType:$scope.AllUserType[temp_usertype_index],
+            userQuestion:$scope.allPivQuestions[temp_index],
+            userPivAnswer:user_data[i].userPivAnswer,
+            username:user_data[i].username,
+            fullname:user_data[i].fullname,
+            employeeId:user_data[i].employeeId,
+            password:user_data[i].password
+        });
+    }
+		 
+		 $scope.RegisterUser=function()
+		 {
+		 $scope.userDataRow.push({
+		        userType:$scope.AllUserType[$scope.userType.id],
+                userQuestion:$scope.allPivQuestions[$scope.userQuestion.id],
+                userPivAnswer:$scope.userPivAnswer,
+                username:$scope.username,
+                fullname:$scope.fullname,
+                employeeId:$scope.employeeId,
+                password:$scope.password
+            });
+			
+			 $http({
+            method:'GET',
+			 url :'http://localhost:5000/RegisterUser',
+			 headers:
+			 {
+				 "UserData":JSON.stringify($scope.userDataRow)
+			 }
+			 }).then(function success(response){
+			 if(response.data=="Done")
+			    window.location="http://localhost:5000/index.html";
+			 },function error(){
+			 console.log("Unable to save and logout.");
+			 });
+			
+		 };
+		 $scope.GoBack=function()
+		 {
+		  window.location="http://localhost:5000/index.html";
+		 }
+		 }]);
+		 </script>
+</head>
+<body ng-app="InventoryAppLogin" ng-controller="InventoryRegisterController">
+<nav class="navbar navbar-default">
+  <div class="container-fluid" style="background:#67BCDB">
+
+<img src="http://www.suntechnologies.com/images/aavega-logo.png" alt="Smiley face" align="left" width="130" height="80" >
+    <div class="navbar-header">
+      <div class="navbar-brand "  style="margin-left:0px; color:white" >
+          Aavega Inventory Management
+      </div>
+    </div>
+  </div>
+  
+</nav>
+
+<div class="container">
+
+<div class="col-md-6 col-md-offset-3">
+    <h2 style="text-align:center;">Register a new user</h2>
+    <form >
+	<div class="form-group" >
+             <select class="form-control" id="userType" data-ng-options="userTypeOption.value for userTypeOption in AllUserType" data-ng-model="userType" ></select>
+        </div>
+        <div class="form-group" >
+            <label for="username">Username</label>
+            <input type="text" name="username" id="username" class="form-control" ng-model="username" required placeholder="Enter username" />        
+        </div>
+		<div class="form-group" >
+            <label for="fullname">Name</label>
+            <input type="text" name="fullname" id="fullname" class="form-control" ng-model="fullname" required placeholder="Enter fullname" />        
+        </div>
+		 <div class="form-group" >
+            <label for="employeeId">employeeId</label>
+            <input type="text" name="employeeId" id="employeeId" class="form-control" ng-model="employeeId" required placeholder="Enter employeeId" />        
+        </div>
+        <div class="form-group" >
+            <label for="password">Password</label>
+            <input type="password" name="password" id="password" class="form-control" ng-model="password"  required placeholder="Enter password" />
+        </div>
+		<div class="form-group" >
+            <label for="password">Confirm Password</label>
+            <input type="password" name="confirmpassword" id="confirmpassword" class="form-control" ng-model="confirmpassword"  required placeholder="Confirm Password" />
+        </div>
+		<div class="form-group" >
+            <label for="userPivQuestion">Select a Question</label>
+             <select class="form-control" id="userPivQuestion" data-ng-options="questionoption.value for questionoption in allPivQuestions" data-ng-model="userQuestion" ></select>
+			  <label for="userPivAnswer" style="margin-top:10px;">Answer</label>
+              <input type="userPivAnswer" name="userPivAnswer" id="userPivAnswer" class="form-control" ng-model="userPivAnswer"  required placeholder="Enter answer" />
+        </div>
+        <div class="form-actions">
+		   <button  ng-click="RegisterUser()"  class="btn btn-primary">Submit </button>
+		   <button  ng-click="GoBack()"  class="btn btn-primary">Go Back </button>
+        </div>
+    </form>
+</div>
+</div>
+</body>
+</html>
